@@ -14,8 +14,7 @@ Initial release.
 ### Added
 
 - The main `log-face.ts` file that the `index.ts` simply exports.
-	- All current functionality is in the `log-face.ts` file.
-	- Currently the scope of the project is to add a coloured label to every log entry with a timestamp 
-	and a message, which can be an object.
+  - All current functionality is in the `log-face.ts` file.
+  - Currently the scope of the project is to add a coloured label to every log entry with a timestamp and a message, which can be an object.
 - A build system for the library which outputs JavaScript and a `.d.ts` file tothe same `/dist` folder.
 - `README.md` and this `CHANGELOG.md` for documentation.

@@ -1,23 +1,39 @@
 {
-   "name": "log-face",
-   "description": "A logging facade for JavaScript's `console.log` for use in the browser",
-   "private": false,
-   "version": "0.1.0",
-   "type": "module",
-   "scripts": {
-      "dev": "vite",
-      "clean": "Remove-Item -Recurse -Force -Path ./dist",
-      "build:es": "esbuild src/index.ts --bundle --outfile=dist/log-face.js --platform=browser --minify --sourcemap",
-      "build:tsd": "pnpm tsc src/log-face.ts --declaration --emitDeclarationOnly --outDir dist --module es2015 --target ES2015",
-      "build": "pnpm build:es & pnpm build:tsd"
-   },
-   "devDependencies": {
-      "esbuild": "^0.27.4",
-      "typescript": "~5.9.3",
-      "vite": "^8.0.1"
-   },
-   "author": {
-      "name": "Francis Judge",
-      "email": "fjudge7@gmail.com"
-   }
+  "name": "log-face",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A zero-cost logging facade for JavaScript's `console.log` for use in the browser with an override to prevent all logs",
+  "keywords": [
+    "Logging",
+    "Browser",
+    "console.log"
+  ],
+  "homepage": "https://github.com/FJSolutions/log-face#readme",
+  "bugs": {
+    "url": "https://github.com/FJSolutions/log-face/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FJSolutions/log-face.git"
+  },
+  "license": "MIT",
+  "author": "Francis Judge <fjudge7@gmail.com>",
+  "type": "module",
+  "main": "dist/log-face.js",
+  "types": "./dist/log-face.d.ts",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "dev": "vite",
+    "clean": "Remove-Item -Recurse -Force -Path ./dist",
+    "build:es": "esbuild src/index.ts --bundle --outfile=dist/log-face.js --platform=browser --minify --sourcemap",
+    "build:tsd": "pnpm tsc src/log-face.ts --declaration --emitDeclarationOnly --outDir dist --module es2015 --target ES2015",
+    "build": "pnpm build:es & pnpm build:tsd"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.4",
+    "typescript": "~5.9.3",
+    "vite": "^8.0.1"
+  }
 }
