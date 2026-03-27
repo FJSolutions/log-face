@@ -9,5 +9,8 @@
   - Errors should always be shown unless logging it off
   - Warnings if the level is warning or error, et cetera.
 - [x] Document the file
+- [x] Enable a testing mode
+  - Make all the logic DRY
+  - Write tests to cover all functionality
 - [ ] A getting started GitHub site
   - [ ] Create a logo

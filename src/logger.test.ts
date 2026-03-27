@@ -1,4 +1,4 @@
-import { createLogger, loggerDefaults } from "../src";
+import { createLogger, loggerDefaults } from "./index.ts";
 
 //* Uncomment to disable all logging
 // loggerDefaults.disableLogging = true;

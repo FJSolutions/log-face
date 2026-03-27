@@ -4,7 +4,7 @@
 export type LogLevel =
    | "Debug"
    | "Info"
-   | "Warning"
+   | "Warn"
    | "Error"
    /** Logging is off for the logger */
    | "Off"
@@ -17,6 +17,17 @@ export interface LoggerConfig {
     * The default level to generate log messages for
     */
    logLevel: LogLevel,
+   /**
+    * A category label for the logger
+    */
+   category?: string
+}
+
+interface LoggerConfigDefaults extends LoggerConfig {
+   /**
+    * Flag to indicate whether the logger is being used for testing (Global)
+    */
+   isTesting: boolean
    /**
     * The colour of the Debug message label
     */
@@ -37,22 +48,33 @@ export interface LoggerConfig {
     * Globally disables logging
     */
    disableLogging: boolean
-   /**
-    * A category label for the logger
-    */
-   category?: string
 }
 
 /**
  * The default configuration for the logger
  */
-export const loggerDefaults: LoggerConfig = {
+export const loggerDefaults: LoggerConfigDefaults = {
    logLevel: "Debug",
    debugColor: "cornflowerblue",
    infoColor: "darkseagreen",
    warnColor: "darkorange",
    errorColor: "crimson",
    disableLogging: false,
+   isTesting: false,
+}
+
+/**
+ * The payload of a log message
+ */
+interface LogPayload {
+   /**
+    * The logging level
+    */
+   level: LogLevel
+   /**
+    * The message object
+    */
+   message: any
 }
 
 /**
@@ -64,26 +86,31 @@ export interface LogFace {
     * if logging has not been disabled and the `logLevel` is set to at least Debug
     * @param message Any kind of object that will be merged with the built-in logging properties
     */
-   debug: (message: any) => void
+   debug: (message: any) => void | LogPayload
    /**
     * Writes an Info message to the console;
     * if logging has not been disabled and the `logLevel` is set to Info or lower
     * @param message Any kind of object that will be merged with the built-in logging properties
     */
-   info: (message: any) => void
+   info: (message: any) => void | LogPayload
    /**
     * Writes a Warning message to the console;
     * if logging has not been disabled and the `logLevel` is set to Warn or lower
     * @param message Any kind of object that will be merged with the built-in logging properties
     */
-   warn: (message: any) => void
+   warn: (message: any) => void | LogPayload
    /**
     * Writes an Error message to the console;
     * if logging has not been disabled and the `logLevel` is set to at Error or lower
     * @param message Any kind of object that will be merged with the built-in logging properties
     */
-   error: (message: any) => void
+   error: (message: any) => void | LogPayload
 }
+
+/**
+ * Flag to indicate whether the logger is being used for testing (Global)
+ */
+// export let isTesting = false
 
 const DEBUG_LEVEL = 100
 const INFO_LEVEL = 300
@@ -97,7 +124,7 @@ const logLevelToNumber = (logLevel: LogLevel): number => {
          return DEBUG_LEVEL
       case"Info":
          return INFO_LEVEL
-      case "Warning":
+      case "Warn":
          return WARN_LEVEL
       case "Error":
          return ERROR_LEVEL
@@ -140,9 +167,9 @@ const makeStructuredLogMessage = (message: any, optionalCategory?: string): any 
 
 class ConsoleLogger implements LogFace {
    private readonly _logLevel: number
-   private readonly _config: LoggerConfig
+   private readonly _config: LoggerConfigDefaults
 
-   constructor(config: LoggerConfig) {
+   constructor(config: LoggerConfigDefaults) {
       this._config = config
       this._logLevel = logLevelToNumber(loggerDefaults.logLevel)
       const overriddenLogLevel = logLevelToNumber(config.logLevel)
@@ -150,24 +177,35 @@ class ConsoleLogger implements LogFace {
          this._logLevel = overriddenLogLevel
    }
 
-   debug(message: any): void {
-      if (!this._config.disableLogging && this._logLevel <= DEBUG_LEVEL)
-         console.log("%c[DEBUG]: %o", `color: ${this._config.debugColor}; font-weight: bold;`, makeStructuredLogMessage(message, this._config.category))
+   debug(message: any) {
+      if (!this._config.disableLogging && this._logLevel <= DEBUG_LEVEL) {
+         return this.sendMessage("Debug", this._config.debugColor, message)
+      }
    }
 
-   info(message: any): void {
-      if (!this._config.disableLogging && this._logLevel <= INFO_LEVEL)
-         console.log("%c[INFO]: %o", `color: ${this._config.infoColor}; font-weight: bold;`, makeStructuredLogMessage(message, this._config.category))
+   info(message: any) {
+      if (!this._config.disableLogging && this._logLevel <= INFO_LEVEL) {
+         return this.sendMessage("Info", this._config.infoColor, message)
+      }
    }
 
-   warn(message: any): void {
-      if (!this._config.disableLogging && this._logLevel <= WARN_LEVEL)
-         console.log("%c[WARN]: %o", `color: ${this._config.warnColor}; font-weight: bold;`, makeStructuredLogMessage(message, this._config.category))
+   warn(message: any) {
+      if (!this._config.disableLogging && this._logLevel <= WARN_LEVEL) {
+         return this.sendMessage("Warn", this._config.warnColor, message)
+      }
    }
 
-   error(error: Error): void {
-      if (!this._config.disableLogging && this._logLevel <= ERROR_LEVEL)
-         console.log("%c[ERROR]: %o", `color: ${this._config.errorColor}; font-weight: bold;`, makeStructuredLogMessage(error, this._config.category))
+   error(error: Error) {
+      if (!this._config.disableLogging && this._logLevel <= ERROR_LEVEL) {
+         return this.sendMessage("Error", this._config.errorColor, error)
+      }
+   }
+
+   private sendMessage(level: LogLevel, colour: string, payload: any) {
+      const args: LogPayload = {level, message: makeStructuredLogMessage(payload, this._config.category)}
+      if (this._config.isTesting)
+         return args
+      console.log(`%c[${level.toLocaleLowerCase()}]: %o`, `color: ${colour}; font-weight: bold;`, args)
    }
 }
 
@@ -176,18 +214,18 @@ type Params = OptionalLoggerConfig | string;
 
 /**
  * Creates a new structured logger based on the browser's console, with the given configuration
-* @param config (Optional) Either an object that overrides the default configuration or a `string` which will be used as the `category` property
+ * @param config (Optional) Either an object that overrides the default configuration or a `string` which will be used as the `category` property
  */
- export const createLogger = (config?: Params): LogFace => {
-   	let cfg: OptionalLoggerConfig = {};
-   	if (config) {
-		if (typeof config === "string") {
-			cfg = { category: config };
-	   	} else {
-	   		cfg = config;
-	   	}
+export const createLogger = (config?: Params): LogFace => {
+   let cfg: OptionalLoggerConfig = {};
+   if (config) {
+      if (typeof config === "string") {
+         cfg = {category: config};
+      } else {
+         cfg = config;
+      }
    }
-	const _config = Object.assign({}, loggerDefaults, cfg);
+   const _config = Object.assign({}, loggerDefaults, cfg);
 
    if (logLevelToNumber(_config.logLevel) < 0) {
       throw new Error('Invalid log level, must be one of "Debug", "Info", "Warning", "Error", or "Off"')
