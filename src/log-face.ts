@@ -171,12 +171,23 @@ class ConsoleLogger implements LogFace {
    }
 }
 
+type OptionalLoggerConfig = Partial<LoggerConfig>;
+type Params = OptionalLoggerConfig | string;
+
 /**
  * Creates a new structured logger based on the browser's console, with the given configuration
- * @param config Any overrides to the default configuration
+* @param config (Optional) Either an object that overrides the default configuration or a `string` which will be used as the `category` property
  */
-export const createLogger = (config?: Partial<LoggerConfig>): LogFace => {
-   const _config = Object.assign({}, loggerDefaults, config ?? {})
+ export const createLogger = (config?: Params): LogFace => {
+   	let cfg: OptionalLoggerConfig = {};
+   	if (config) {
+		if (typeof config === "string") {
+			cfg = { category: config };
+	   	} else {
+	   		cfg = config;
+	   	}
+   }
+	const _config = Object.assign({}, loggerDefaults, cfg);
 
    if (logLevelToNumber(_config.logLevel) < 0) {
       throw new Error('Invalid log level, must be one of "Debug", "Info", "Warning", "Error", or "Off"')
