@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import { createLogger, loggerDefaults } from "../src";
+import { createLogger, loggerDefaults, setLoggingOverride } from "../src";
 
 describe("log-face", () => {
    beforeEach(() => {
@@ -7,6 +7,7 @@ describe("log-face", () => {
       loggerDefaults.isTesting = true
       loggerDefaults.disableLogging = false
       loggerDefaults.logLevel = "Debug"
+      setLoggingOverride('normal')
    })
 
    it("should log a message at the Debug level", () => {
@@ -177,5 +178,61 @@ describe("log-face", () => {
       const logger = createLogger({logLevel: "Off"})
       const result = logger.error("Testing")
       expect(result).toBeUndefined()
+   })
+
+   describe("setLoggingOverride", () => {
+      it("should suppress all logging when override is 'disabled'", () => {
+         setLoggingOverride('disabled')
+         const logger = createLogger()
+         expect(logger.debug("Testing")).toBeUndefined()
+         expect(logger.info("Testing")).toBeUndefined()
+         expect(logger.warn("Testing")).toBeUndefined()
+         expect(logger.error("Testing")).toBeUndefined()
+      })
+
+      it("should restore per-logger behaviour when override is reset to 'normal'", () => {
+         setLoggingOverride('disabled')
+         setLoggingOverride('normal')
+         const logger = createLogger({logLevel: "Warn"})
+         expect(logger.warn("Testing")).toEqual({
+            level: "Warn",
+            message: { time: expect.any(Number), message: "Testing" }
+         })
+         expect(logger.debug("Testing")).toBeUndefined()
+      })
+
+      it("should force all loggers to the override level regardless of their own config", () => {
+         setLoggingOverride({ level: "Error" })
+         const debugLogger = createLogger({logLevel: "Debug"})
+         expect(debugLogger.debug("Testing")).toBeUndefined()
+         expect(debugLogger.info("Testing")).toBeUndefined()
+         expect(debugLogger.warn("Testing")).toBeUndefined()
+         expect(debugLogger.error("Testing")).toEqual({
+            level: "Error",
+            message: { time: expect.any(Number), message: "Testing" }
+         })
+      })
+
+      it("should only log matching category when a category filter is set", () => {
+         setLoggingOverride({ level: "Debug", category: "api" })
+         const apiLogger = createLogger({ category: "api" })
+         const uiLogger = createLogger({ category: "ui" })
+         const untaggedLogger = createLogger()
+         expect(apiLogger.debug("from api")).toEqual({
+            level: "Debug",
+            message: { time: expect.any(Number), message: "from api", category: "api" }
+         })
+         expect(uiLogger.debug("from ui")).toBeUndefined()
+         expect(untaggedLogger.debug("untagged")).toBeUndefined()
+      })
+
+      it("should work dynamically on a logger created before the override was set", () => {
+         const logger = createLogger({logLevel: "Debug"})
+         expect(logger.debug("before")).toBeDefined()
+         setLoggingOverride('disabled')
+         expect(logger.debug("after")).toBeUndefined()
+         setLoggingOverride('normal')
+         expect(logger.debug("restored")).toBeDefined()
+      })
    })
 })

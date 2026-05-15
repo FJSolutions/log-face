@@ -1,6 +1,6 @@
 {
    "name": "log-face",
-   "version": "0.1.0",
+   "version": "0.2.0",
    "private": false,
    "description": "A zero-cost logging facade for JavaScript's `console.log` for use in the browser with an override to prevent all logs",
    "keywords": [
@@ -34,7 +34,7 @@
       "esbuild": "^0.27.4",
       "oxlint": "^1.57.0",
       "typescript": "~5.9.3",
-      "vite": "^8.0.1",
+      "vite": "8.0.5",
       "vitest": "^4.1.2"
    }
 }

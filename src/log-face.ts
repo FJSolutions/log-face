@@ -10,6 +10,18 @@ export type LogLevel =
    | "Off"
 
 /**
+ * The three global logging override states:
+ * - `'disabled'`: suppress all logging regardless of logger config
+ * - `'normal'`: use each logger's own configured level (default)
+ * - `{ level, category? }`: force all loggers to the given level; if `category` is set,
+ *   only loggers with a matching tag will log — all others are suppressed
+ */
+export type LoggingOverride =
+   | 'disabled'
+   | 'normal'
+   | { level: Exclude<LogLevel, 'Off'>; category?: string }
+
+/**
  * The public interface for configuring logging
  */
 export interface LoggerConfig {
@@ -61,6 +73,21 @@ export const loggerDefaults: LoggerConfigDefaults = {
    errorColor: "crimson",
    disableLogging: false,
    isTesting: false,
+}
+
+let _globalOverride: LoggingOverride = 'normal'
+
+/**
+ * Sets the global logging override state. This affects all loggers at call time,
+ * regardless of when the logger was created.
+ * @param override One of:
+ *   - `'disabled'` — suppress all logging
+ *   - `'normal'` — restore each logger's own configured level (default)
+ *   - `{ level, category? }` — force all loggers to `level`; if `category` is supplied,
+ *     only loggers tagged with that category will log
+ */
+export const setLoggingOverride = (override: LoggingOverride): void => {
+   _globalOverride = override
 }
 
 /**
@@ -177,26 +204,36 @@ class ConsoleLogger implements LogFace {
          this._logLevel = overriddenLogLevel
    }
 
+   private _isLoggingEnabled(levelThreshold: number): boolean {
+      if (loggerDefaults.disableLogging) return false
+      const override = _globalOverride
+      if (override === 'disabled') return false
+      if (override === 'normal') return this._logLevel <= levelThreshold
+      // Object override: apply global level, with optional category filter
+      if (override.category !== undefined && this._config.category !== override.category) return false
+      return logLevelToNumber(override.level) <= levelThreshold
+   }
+
    debug(message: any) {
-      if (!this._config.disableLogging && this._logLevel <= DEBUG_LEVEL) {
+      if (this._isLoggingEnabled(DEBUG_LEVEL)) {
          return this.sendMessage("Debug", this._config.debugColor, message)
       }
    }
 
    info(message: any) {
-      if (!this._config.disableLogging && this._logLevel <= INFO_LEVEL) {
+      if (this._isLoggingEnabled(INFO_LEVEL)) {
          return this.sendMessage("Info", this._config.infoColor, message)
       }
    }
 
    warn(message: any) {
-      if (!this._config.disableLogging && this._logLevel <= WARN_LEVEL) {
+      if (this._isLoggingEnabled(WARN_LEVEL)) {
          return this.sendMessage("Warn", this._config.warnColor, message)
       }
    }
 
    error(error: Error) {
-      if (!this._config.disableLogging && this._logLevel <= ERROR_LEVEL) {
+      if (this._isLoggingEnabled(ERROR_LEVEL)) {
          return this.sendMessage("Error", this._config.errorColor, error)
       }
    }
